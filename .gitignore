@@ -1,0 +1,14 @@
+# Config file
+.settings
+.project
+.cproject
+
+# IDF compile output
+build
+
+# config
+sdkconfig
+sdkconfig.old
+
+# VS Code Settings
+.vscode/
