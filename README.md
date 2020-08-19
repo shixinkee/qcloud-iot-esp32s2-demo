@@ -167,5 +167,5 @@ qcloud_iot_c_sdk 目录介绍如下：
 include目录为SDK供用户使用的API及可变参数，其中config.h为根据编译选项生成的编译宏。API具体介绍请参考C-SDK文档**C-SDK_API及可变参数说明**。
 platform目录为平台相关的代码，可根据设备的具体情况进行修改适配。具体的函数说明请参考C-SDK文档**C-SDK_Porting跨平台移植概述**
 sdk_src为SDK的核心逻辑及协议相关代码，一般不需要修改，其中internal_inc为SDK内部使用的头文件。
-
+vdvd
 
