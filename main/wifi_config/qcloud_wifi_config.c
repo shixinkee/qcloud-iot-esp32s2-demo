@@ -706,17 +706,14 @@ static void softAP_mqtt_task(void *pvParameters)
         int state = wifi_wait_event(SOFT_AP_BLINK_TIME_MS);
         if (state == EVENT_WIFI_CONNECTED) {
             Log_d("WiFi Connected to ap");
-            set_wifi_led_state(WIFI_LED_ON);
 
             int ret = mqtt_send_token();
             if (ret) {
                 Log_e("SoftAP: WIFI_MQTT_CONNECT_FAILED: %d", ret);
                 PUSH_LOG("SoftAP: WIFI_MQTT_CONNECT_FAILED: %d", ret);
-                set_wifi_led_state(WIFI_LED_OFF);
             } else {
                 Log_i("SoftAP: WIFI_MQTT_CONNECT_SUCCESS");
                 PUSH_LOG("SoftAP: WIFI_MQTT_CONNECT_SUCCESS");
-                set_wifi_led_state(WIFI_LED_ON);
                 sg_wifi_config_success = true;
             }
 
@@ -726,16 +723,12 @@ static void softAP_mqtt_task(void *pvParameters)
             server_count = WIFI_CONFIG_HALF_TIME_MS / SOFT_AP_BLINK_TIME_MS;
             Log_i("disconnect event! wait count change to %d", server_count);
 
-        } else {
-            led_state = (~led_state) & 0x01;
-            set_wifi_led_state(led_state);
         }
 
         // check comm server task state
         if (!sg_comm_task_run && !sg_token_received) {
             Log_e("comm server task error!");
             PUSH_LOG("comm server task error");
-            set_wifi_led_state(WIFI_LED_OFF);
             break;
         }
     }
@@ -744,7 +737,6 @@ static void softAP_mqtt_task(void *pvParameters)
         Log_w("SoftAP: TIMEOUT");
         PUSH_LOG("SoftAP: TIMEOUT");
         push_error_log(ERR_BD_STOP, ERR_SC_EXEC_TIMEOUT);
-        set_wifi_led_state(WIFI_LED_OFF);
     }
 
     wifi_stop_softap();
@@ -839,7 +831,6 @@ void stop_softAP(void)
     sg_comm_task_run = false;
     sg_log_task_run  = false;
 
-    set_wifi_led_state(WIFI_LED_OFF);
     wifi_stop_softap();
 }
 
@@ -861,17 +852,15 @@ static void smartconfig_mqtt_task(void *parm)
 
         if (state == EVENT_WIFI_CONNECTED) {
             Log_d("WiFi Connected to AP");
-            set_wifi_led_state(WIFI_LED_ON);
 
             ret = mqtt_send_token();
             if (ret) {
                 Log_e("SmartConfig: WIFI_MQTT_CONNECT_FAILED: %d", ret);
                 PUSH_LOG("SmartConfig: WIFI_MQTT_CONNECT_FAILED: %d", ret);
-                set_wifi_led_state(WIFI_LED_OFF);
             } else {
                 Log_i("SmartConfig: WIFI_MQTT_CONNECT_SUCCESS");
                 PUSH_LOG("SmartConfig: WIFI_MQTT_CONNECT_SUCCESS");
-                set_wifi_led_state(WIFI_LED_ON);
+
                 sg_wifi_config_success = true;
             }
 
@@ -881,7 +870,6 @@ static void smartconfig_mqtt_task(void *parm)
             Log_w("smartconfig over");
             PUSH_LOG("smartconfig over");
             push_error_log(ERR_BD_STOP, ERR_SC_APP_STOP);
-            set_wifi_led_state(WIFI_LED_OFF);
             break;
         } else if (state == EVENT_WIFI_DISCONNECTED) {
             // reduce the wait time as it meet disconnect
@@ -890,14 +878,12 @@ static void smartconfig_mqtt_task(void *parm)
 
         } else {
             led_state = (~led_state) & 0x01;
-            set_wifi_led_state(led_state);
         }
 
         // check comm server task state
         if (!sg_comm_task_run && !sg_token_received) {
             Log_e("comm server task error!");
             PUSH_LOG("comm server task error");
-            set_wifi_led_state(WIFI_LED_OFF);
             break;
         }
     }
@@ -906,7 +892,6 @@ static void smartconfig_mqtt_task(void *parm)
         Log_w("SmartConfig: TIMEOUT");
         PUSH_LOG("SmartConfig: TIMEOUT");
         push_error_log(ERR_BD_STOP, ERR_SC_EXEC_TIMEOUT);
-        set_wifi_led_state(WIFI_LED_OFF);
     }
 
     wifi_stop_smartconfig();
@@ -1001,7 +986,6 @@ void stop_smartconfig(void)
     sg_log_task_run  = false;
 
     wifi_stop_smartconfig();
-    set_wifi_led_state(WIFI_LED_OFF);
 }
 
 bool is_wifi_config_successful(void)

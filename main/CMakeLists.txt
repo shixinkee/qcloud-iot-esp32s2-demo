@@ -7,7 +7,7 @@ set(COMPONENT_ADD_INCLUDEDIRS "./wifi_config"
 set(COMPONENT_REQUIRES)
 set(COMPONENT_PRIV_REQUIRES )
 
-set(COMPONENT_SRCS ./ota_esp/qcloud_iot_ota_esp.c ./main.c ./board_ops.c)
+set(COMPONENT_SRCS ./ota_esp/qcloud_iot_ota_esp.c ./main.c ./board_ops.c ./led_strip_rmt_ws2812.c)
 
 
 #ifdef CONFIG_SMART_LIGHT_ENABLED

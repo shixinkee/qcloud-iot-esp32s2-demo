@@ -247,10 +247,6 @@ static void OnActionCallback(void *pClient, const char *pClientToken, DeviceActi
     // do blink
     Log_i("do action: light blink");
     for (i = 0; i < 6; i++) {
-        if (i % 2)
-            set_relay_led_state(RELAY_LED_ON);
-        else
-            set_relay_led_state(RELAY_LED_OFF);
         HAL_SleepMs(period * 1000);
     }
 
@@ -451,9 +447,11 @@ static void deal_down_stream_user_logic(void *client, ProductDataDefine *light)
 
     /** hardware control **/
     if (light->m_light_switch) {
-        set_relay_led_state(RELAY_LED_ON);
+       // set_relay_led_state(RELAY_LED_ON);
+       ;
     } else {
-        set_relay_led_state(RELAY_LED_OFF);
+      //  set_relay_led_state(RELAY_LED_OFF);
+      ;
     }
 
 #ifdef EVENT_POST_ENABLED

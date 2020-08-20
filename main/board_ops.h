@@ -36,9 +36,5 @@
 
 void board_init(void);
 
-esp_err_t set_wifi_led_state(uint32_t state);
-esp_err_t set_relay_led_state(uint32_t state);
-
-
 #endif //__BOARD_OPS_H__
 
