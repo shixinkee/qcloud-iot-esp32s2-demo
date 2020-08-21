@@ -33,6 +33,12 @@
 #include "qcloud_wifi_config.h"
 #include "wifi_config_internal.h"
 #include "board_ops.h"
+#include "factory_restore.h"
+#include "esp_err.h"
+#include "esp_log.h"
+
+#define STA_SSID_KEY             "stassid"
+#define STA_PASSWORD_KEY         "pswd"
 
 /* task control flags */
 static bool sg_mqtt_task_run = false;
@@ -530,6 +536,17 @@ static int app_handle_recv_data(comm_peer_t *peer, char *pdata, int len)
                 Log_i("STA to connect SSID:%s PASSWORD:%s", ssid_json->valuestring, psw_json->valuestring);
                 PUSH_LOG("SSID:%s|PSW:%s|TOKEN:%s", ssid_json->valuestring, psw_json->valuestring,
                          token_json->valuestring);
+                int ret = HAL_Kv_Set(STA_SSID_KEY, ssid_json->valuestring, strlen(ssid_json->valuestring), 0);
+                if (ret != ESP_OK) {
+                    ESP_LOGE("qcloud_wifi_config.c", "%s key store failed with %d", STA_PASSWORD_KEY, ret);
+                }
+
+                ret = HAL_Kv_Set(STA_PASSWORD_KEY, psw_json->valuestring, strlen(psw_json->valuestring), 0);
+                if (ret != ESP_OK) {
+                    ESP_LOGE("qcloud_wifi_config.c", "%s key store failed with %d", STA_SSID_KEY, ret);
+                    return ESP_FAIL;
+                 }
+                
                 ret = wifi_sta_connect(ssid_json->valuestring, psw_json->valuestring);
                 if (ret) {
                     Log_e("wifi_sta_connect failed: %d", ret);

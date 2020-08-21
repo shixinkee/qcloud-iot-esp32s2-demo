@@ -29,10 +29,16 @@
 #include "qcloud_iot_demo.h"
 #include "qcloud_wifi_config.h"
 #include "board_ops.h"
+#include "factory_restore.h"
 
+#define STA_SSID_KEY             "stassid"
+#define STA_PASSWORD_KEY         "pswd"
+
+bool wifi_connected = false;
+bool provisioned = false;
 
 /* normal WiFi STA mode init and connection ops */
-#ifndef CONFIG_WIFI_CONFIG_ENABLED
+//#ifndef CONFIG_WIFI_CONFIG_ENABLED
 
 /* WiFi router SSID  */
 #define TEST_WIFI_SSID                 CONFIG_DEMO_WIFI_SSID
@@ -41,7 +47,6 @@
 
 static const int CONNECTED_BIT = BIT0;
 static EventGroupHandle_t wifi_event_group;
-bool wifi_connected = false;
 
 bool wait_for_wifi_ready(int event_bits, uint32_t wait_cnt, uint32_t BlinkTime)
 {
@@ -72,7 +77,15 @@ static void wifi_connection(void)
             .password = TEST_WIFI_PASSWORD,
         },
     };
-    Log_i("Setting WiFi configuration SSID %s...", wifi_config.sta.ssid);
+    int ssid_len = 32;
+    int password_len = 64;
+    if(provisioned)
+    {
+        int ret = HAL_Kv_Get(STA_SSID_KEY, wifi_config.sta.ssid, &ssid_len);
+
+        ret = HAL_Kv_Get(STA_PASSWORD_KEY, wifi_config.sta.password, &password_len);
+    }
+    Log_i("Setting WiFi configuration SSID:%s,  PSW:%s", wifi_config.sta.ssid, wifi_config.sta.password);
 
     ESP_ERROR_CHECK(esp_wifi_set_config(ESP_IF_WIFI_STA, &wifi_config));
 
@@ -125,7 +138,7 @@ static void esp_wifi_initialise(void)
     ESP_ERROR_CHECK( esp_wifi_start() );
 }
 
-#endif //#ifnef CONFIG_DEMO_WIFI_BOARDING
+//#endif //#ifnef CONFIG_DEMO_WIFI_BOARDING
 
 void setup_sntp(void )
 {
@@ -158,33 +171,74 @@ void setup_sntp(void )
     tzset();
 }
 
+static bool app_prov_is_provisioned(bool * provisioned)
+{
+
+    *provisioned = false;
+    esp_err_t err;
+    int len = 32;
+    uint8_t ssid[32] = { 0 };
+
+    // esp_wifi_get_config(ESP_IF_WIFI_STA, &test);
+    // Log_i("*******Found ssid %s",     (const char*) test.sta.ssid);
+    // Log_i("*******Found password %s", (const char*) test.sta.password);
+
+    /* Get WiFi Station configuration */
+    int ret = HAL_Kv_Get(STA_SSID_KEY, ssid, &len);
+    ESP_LOGI("main", "ssid : %s",ssid );
+
+    if (strlen((const char*) ssid)) {
+        *provisioned = true;
+    }
+    return ESP_OK;
+}
+
 void qcloud_demo_task(void* parm)
 {
     Log_i("qcloud_demo_task start");
 
 #if CONFIG_WIFI_CONFIG_ENABLED
     /* to use WiFi config and device binding with Wechat mini program */
-    int wifi_config_state;
-    int ret = start_softAP("ESP8266-SAP", "12345678", 0);
-    //int ret = start_smartconfig();
-    if (ret) {
-        Log_e("start wifi config failed: %d", ret);
-    } else {
-        /* max waiting: 150 * 2000ms */
-        int wait_cnt = 150;
-        do {
-            Log_d("waiting for wifi config result...");
-            HAL_SleepMs(2000);            
-            wifi_config_state = query_wifi_config_state();
-        } while (wifi_config_state == WIFI_CONFIG_GOING_ON && wait_cnt--);
+    if ( app_prov_is_provisioned(&provisioned) != ESP_OK) {
+        ESP_LOGE("main", "Error getting device provisioning state");
     }
+    ESP_LOGI("main", "provisioned : %d",provisioned );
+    if (!provisioned)
+    {
+        int wifi_config_state;
+        int ret = start_softAP("ESP8266-SAP", "12345678", 0);
+        //int ret = start_smartconfig();
+        if (ret){
+            Log_e("start wifi config failed: %d", ret);
+        }
+        else
+        {
+            /* max waiting: 150 * 2000ms */
+            int wait_cnt = 150;
+            do
+            {
+                Log_d("waiting for wifi config result...");
+                HAL_SleepMs(2000);
+                wifi_config_state = query_wifi_config_state();
+            } while (wifi_config_state == WIFI_CONFIG_GOING_ON && wait_cnt--);
+        }
 
-    wifi_connected = is_wifi_config_successful();
-    if (!wifi_connected) {
-        Log_e("wifi config failed!");
-        // setup a softAP to upload log to mini program
-        start_log_softAP();
+        wifi_connected = is_wifi_config_successful();
+        if (!wifi_connected)
+        {
+            Log_e("wifi config failed!");
+            // setup a softAP to upload log to mini program
+            start_log_softAP();
+        }
     }
+    else
+    {
+        /* init wifi STA and start connection with expected BSS */
+         esp_wifi_initialise();
+        /* 20 * 1000ms */
+        wifi_connected = wait_for_wifi_ready(CONNECTED_BIT, 20, 1000);
+    }
+    
 #else
     /* init wifi STA and start connection with expected BSS */
     esp_wifi_initialise();
@@ -213,6 +267,7 @@ void qcloud_demo_task(void* parm)
 void app_main()
 {
     ESP_ERROR_CHECK(nvs_flash_init());
+    factory_restore_init();
 
     //init log level
     IOT_Log_Set_Level(eLOG_DEBUG);
