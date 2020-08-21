@@ -22,12 +22,12 @@
 #include "driver/rmt.h"
 #include "led_strip.h"
 
-uint32_t g_wifi_led_gpio = GPIO_WIFI_LED;
-uint32_t g_relay_led_gpio = GPIO_RELAY_LED;
-
 #define RMT_TX_CHANNEL RMT_CHANNEL_0 
 #define CONFIG_EXAMPLE_RMT_TX_GPIO 18
 #define CONFIG_EXAMPLE_STRIP_LED_NUMBER 24
+
+led_strip_t *strip;
+extern bool wifi_connected;
 
 static void led_strip_hsv2rgb(uint32_t h, uint32_t s, uint32_t v, uint32_t *r, uint32_t *g, uint32_t *b)
 {
@@ -75,15 +75,33 @@ static void led_strip_hsv2rgb(uint32_t h, uint32_t s, uint32_t v, uint32_t *r, u
     }
 }
 
-static void led_task(void* par)
+void led_set(uint32_t h, uint32_t s, uint32_t v)
 {
-    uint32_t red = 255;
+    uint32_t red = 0;
     uint32_t green = 0;
-    uint32_t blue = 255;
-    uint16_t hue = 0;
-    uint16_t start_rgb = 0;
-    uint8_t flag = 0;;
+    uint32_t blue = 0;
+    led_strip_hsv2rgb(h, s, v, &red, &green, &blue);
 
+    for (int i = 0; i < 3; i++) {
+        for (int j = i; j < CONFIG_EXAMPLE_STRIP_LED_NUMBER; j += 3) {       
+                ESP_ERROR_CHECK(strip->set_pixel(strip, j, red, green, blue));
+            }
+            ESP_ERROR_CHECK(strip->refresh(strip, 10));
+    }
+}
+
+void led_on(uint32_t h, uint32_t s, uint32_t v)
+{
+    led_set(h, s, v);
+}
+
+void led_off(void)
+{
+    ESP_ERROR_CHECK(strip->clear(strip, 10));
+}
+
+static void led_init(void)
+{
     rmt_config_t config = RMT_DEFAULT_CONFIG_TX(CONFIG_EXAMPLE_RMT_TX_GPIO, RMT_TX_CHANNEL);
     // set counter clock to 40MHz
     config.clk_div = 2;
@@ -93,9 +111,20 @@ static void led_task(void* par)
 
     // install ws2812 driver
     led_strip_config_t strip_config = LED_STRIP_DEFAULT_CONFIG(CONFIG_EXAMPLE_STRIP_LED_NUMBER, (led_strip_dev_t)config.channel);
-    led_strip_t *strip = led_strip_new_rmt_ws2812(&strip_config);
+    strip = led_strip_new_rmt_ws2812(&strip_config);
+}
 
-    while (true) {
+void led_task(void* par)
+{
+    uint32_t red = 255;
+    uint32_t green = 0;
+    uint32_t blue = 255;
+    uint16_t hue = 0;
+    uint16_t saturation = 0;
+    uint16_t start_rgb = 0;
+    uint16_t lightness = 0;
+
+    while (!wifi_connected) {
         for (int i = 0; i < 3; i++) {
             for (int j = i; j < CONFIG_EXAMPLE_STRIP_LED_NUMBER; j += 3) {       
                 // Build RGB values
@@ -107,15 +136,20 @@ static void led_task(void* par)
             // Flush RGB values to LEDs
             ESP_ERROR_CHECK(strip->refresh(strip, 10));
             vTaskDelay(pdMS_TO_TICKS(10));
-     
         }
         start_rgb += 1;
      }
+     led_off();
+     vTaskDelete(NULL);
 }
 
 void board_init(void)
 {
+#ifdef CONFIG_IDF_TARGET_ESP32S2
+    led_init();
+    led_set(100,100,100);
     xTaskCreate(led_task, "led_task", 2048, NULL, 4, NULL);
+#endif
 }
 
 

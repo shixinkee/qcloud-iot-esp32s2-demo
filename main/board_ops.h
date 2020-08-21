@@ -18,23 +18,14 @@
 
 #include "esp_err.h"
 
-/* ESP8266-Launcher board */
-
-#define     GPIO_WIFI_LED   (12)
-
-#define     GPIO_RELAY_LED  (15)
-
-
-#define     GPIO_SET        (1)
-#define     GPIO_CLEAR      (0)
-
-#define     WIFI_LED_ON          GPIO_CLEAR
-#define     WIFI_LED_OFF         GPIO_SET
-
-#define     RELAY_LED_ON          GPIO_SET
-#define     RELAY_LED_OFF         GPIO_CLEAR
 
 void board_init(void);
 
-#endif //__BOARD_OPS_H__
+void led_set(uint32_t h, uint32_t s, uint32_t v);
+
+void led_on(uint32_t h, uint32_t s, uint32_t v);
+
+void led_off(void);
+
+#endif 
 

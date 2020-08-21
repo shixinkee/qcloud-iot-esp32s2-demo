@@ -35,13 +35,13 @@
 
 #ifdef DEBUG_DEV_INFO_USED
 /* product Id  */
-static char sg_product_id[MAX_SIZE_OF_PRODUCT_ID + 1] = "PJ5J8I0R05";
+static char sg_product_id[MAX_SIZE_OF_PRODUCT_ID + 1] = "0Q2TZVUU7N";
 
 /* device name */
 static char sg_device_name[MAX_SIZE_OF_DEVICE_NAME + 1] = "dev01";
 
 /* device secret of PSK device */
-static char sg_device_secret[MAX_SIZE_OF_DEVICE_SECRET + 1] = "55pg8+7CR2eLpeVd3Ht+Hw==";
+static char sg_device_secret[MAX_SIZE_OF_DEVICE_SECRET + 1] = "RUzgpN1zpxGfgoHGEwRhmQ==";
 
 /* region */
 static char sg_region[MAX_SIZE_OF_REGION + 1] = "china";

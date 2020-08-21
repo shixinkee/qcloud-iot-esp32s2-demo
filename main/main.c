@@ -41,6 +41,7 @@
 
 static const int CONNECTED_BIT = BIT0;
 static EventGroupHandle_t wifi_event_group;
+bool wifi_connected = false;
 
 bool wait_for_wifi_ready(int event_bits, uint32_t wait_cnt, uint32_t BlinkTime)
 {
@@ -55,9 +56,6 @@ bool wait_for_wifi_ready(int event_bits, uint32_t wait_cnt, uint32_t BlinkTime)
             Log_d("WiFi Connected to AP");
             return true;
         }
-
-        blueValue = (~blueValue) & 0x01;
-        set_wifi_led_state(blueValue);
     }
 
     xEventGroupClearBits(wifi_event_group, CONNECTED_BIT);
@@ -71,7 +69,7 @@ static void wifi_connection(void)
     wifi_config_t wifi_config = {
         .sta = {
             .ssid = TEST_WIFI_SSID,
-            .password = TEST_WIFI_PASSWORD,i
+            .password = TEST_WIFI_PASSWORD,
         },
     };
     Log_i("Setting WiFi configuration SSID %s...", wifi_config.sta.ssid);
@@ -162,7 +160,6 @@ void setup_sntp(void )
 
 void qcloud_demo_task(void* parm)
 {
-    bool wifi_connected = false;
     Log_i("qcloud_demo_task start");
 
 #if CONFIG_WIFI_CONFIG_ENABLED
@@ -220,7 +217,7 @@ void app_main()
     //init log level
     IOT_Log_Set_Level(eLOG_DEBUG);
     Log_i("FW built time %s %s", __DATE__, __TIME__);
-        
+            
     board_init();
 
     xTaskCreate(qcloud_demo_task, "qcloud_demo_task", 8196, NULL, 4, NULL);
