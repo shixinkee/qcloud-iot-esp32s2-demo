@@ -27,6 +27,9 @@
 #include "board_ops.h"
 #include "qcloud_iot_demo.h"
 #include "qcloud_iot_ota_esp.h"
+#include "data_template_client_json.h"
+#include "cJSON.h"
+#include "esp_log.h"
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -563,6 +566,44 @@ static int _get_sys_info(void *handle, char *pJsonDoc, size_t sizeOfBuffer)
     return IOT_Template_JSON_ConstructSysInfo(handle, pJsonDoc, sizeOfBuffer, platform_info, self_info);
 }
 
+static void _get_status_reply_ack_cb_new(void *pClient, Method method, ReplyAck replyAck, const char *pReceivedJsonDocument,void *pUserdata){
+    Request *request = (Request *)pUserdata;
+
+    Log_d("replyAck=%d", replyAck);
+    if (NULL == pReceivedJsonDocument) {
+        Log_d("Received Json Document is NULL");
+    } else {
+        Log_d("Received Json Document=%s", pReceivedJsonDocument);
+    }
+
+    cJSON *root = cJSON_Parse(pReceivedJsonDocument); 
+    cJSON *object_data = cJSON_GetObjectItem(root,"data"); 
+    cJSON *object_reported = cJSON_GetObjectItem(object_data,"reported"); 
+    cJSON *item = cJSON_GetObjectItem(object_reported,"power_switch");
+    ESP_LOGW(__FILE__, "power_switch:%d", item->valueint);
+    sg_ProductData.m_light_switch = item->valueint;
+
+    item = cJSON_GetObjectItem(object_reported,"hue");
+    ESP_LOGW(__FILE__, "hue:%d", item->valueint);
+    sg_ProductData.m_hue = item->valueint;
+
+    item = cJSON_GetObjectItem(object_reported,"saturation");
+    ESP_LOGW(__FILE__, "saturation:%d", item->valueint);
+    sg_ProductData.m_saturation = item->valueint;
+
+    item = cJSON_GetObjectItem(object_reported,"lightness");
+    ESP_LOGW(__FILE__, "lightness:%d", item->valueint);
+    sg_ProductData.m_lightness = item->valueint;
+    
+    cJSON_Delete(root);
+
+    if (*((ReplyAck *)request->user_context) == ACK_ACCEPTED) {
+        IOT_Template_ClearControl(pClient, request->client_token, NULL, QCLOUD_IOT_MQTT_COMMAND_TIMEOUT);
+    } else {
+        *((ReplyAck *)request->user_context) = replyAck;
+    }
+}
+
 int qcloud_iot_explorer_demo(eDemoType eType)
 {
     DeviceProperty *pReportDataList[TOTAL_PROPERTY_COUNT];
@@ -635,16 +676,23 @@ int qcloud_iot_explorer_demo(eDemoType eType)
         Log_e("Get system info fail, err: %d", rc);
     }
 
-    // sync the property value during offline
-    rc = IOT_Template_GetStatus_sync(client, MQTT_TIMEOUT_VALUE_MS);
-    if (rc != QCLOUD_RET_SUCCESS) {
-        Log_e("Get data status fail, err: %d", rc);
-        // goto exit;
-    } else {
-        Log_d("Get data status success");
+    //sync the property value during offline
+    // rc = IOT_Template_GetStatus_sync(client, MQTT_TIMEOUT_VALUE_MS);
+    // if (rc != QCLOUD_RET_SUCCESS) {
+    //     Log_e("Get data status fail, err: %d", rc);
+    //     // goto exit;
+    // } else {
+    //     Log_d("Get data status success");
+    // }
+
+    ReplyAck ack_request = ACK_NONE;
+    rc                   = IOT_Template_GetStatus(client, &_get_status_reply_ack_cb_new, &ack_request, MQTT_TIMEOUT_VALUE_MS);
+    if (rc != QCLOUD_RET_SUCCESS)
+        IOT_FUNC_EXIT_RC(rc);
+    while (ACK_NONE == ack_request) {
+        IOT_Template_Yield(client, 200);
     }
 
-    HAL_Printf("*********H:%d s:%d V:%d*******", sg_ProductData.m_hue, sg_ProductData.m_saturation, sg_ProductData.m_lightness);
     // update local property status
     deal_down_stream_user_logic(client, &sg_ProductData);
 
