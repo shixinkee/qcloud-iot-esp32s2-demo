@@ -169,6 +169,7 @@ void setup_sntp(void )
     // Set timezone to China Standard Time
     setenv("TZ", "CST-8", 1);
     tzset();
+    vTaskDelete(NULL);
 }
 
 static bool app_prov_is_provisioned(bool * provisioned)
@@ -213,12 +214,12 @@ void qcloud_demo_task(void* parm)
         }
         else
         {
-            /* max waiting: 150 * 2000ms */
-            int wait_cnt = 150;
+            /* max waiting: 1500 * 200ms */
+            int wait_cnt = 1500;
             do
             {
                 Log_d("waiting for wifi config result...");
-                HAL_SleepMs(2000);
+                HAL_SleepMs(200);
                 wifi_config_state = query_wifi_config_state();
             } while (wifi_config_state == WIFI_CONFIG_GOING_ON && wait_cnt--);
         }
@@ -247,7 +248,7 @@ void qcloud_demo_task(void* parm)
 #endif
 
     if (wifi_connected) {
-        setup_sntp();
+        xTaskCreate(setup_sntp, "setup_sntp", 8196, NULL, 4, NULL); 
         Log_i("WiFi is ready, to do Qcloud IoT demo");
         Log_d("timestamp now:%d", HAL_Timer_current_sec());
 #ifdef CONFIG_QCLOUD_IOT_EXPLORER_ENABLED
@@ -260,6 +261,7 @@ void qcloud_demo_task(void* parm)
     }
 
     Log_w("qcloud_demo_task quit");
+    esp_restart();
     vTaskDelete(NULL);
 }
 

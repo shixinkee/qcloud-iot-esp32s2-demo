@@ -8,6 +8,7 @@
 #define EVENT_POST_ENABLED
 #define ACTION_ENABLED
 #define DEV_DYN_REG_ENABLED
+//#define LOG_UPLOAD
 /* #undef LOG_UPLOAD */
 /* #undef IOT_DEBUG */
 #define DEBUG_DEV_INFO_USED
